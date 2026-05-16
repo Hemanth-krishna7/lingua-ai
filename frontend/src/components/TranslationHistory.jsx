@@ -49,7 +49,7 @@ const TranslationHistory = () => {
   };
 
   return (
-    <div className="glass-card p-6 md:p-8 bg-white/40 dark:bg-zinc-900/40 border border-slate-200/50 dark:border-white/10 shadow-xl overflow-hidden relative">
+    <div className="glass-card p-5 md:p-8 bg-white/40 dark:bg-zinc-900/40 border-0 sm:border border-slate-200/50 dark:border-white/10 shadow-xl overflow-hidden relative rounded-2xl sm:rounded-3xl">
       <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 dark:bg-primary-500/10 rounded-full blur-[80px] -z-10 pointer-events-none" />
       
       <div className="flex items-center justify-between mb-6">

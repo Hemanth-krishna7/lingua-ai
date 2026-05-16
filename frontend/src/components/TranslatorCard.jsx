@@ -1,11 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   ArrowRightLeft,
   Copy,
   Loader2,
   Languages,
   CheckCircle2,
-  Sparkles
+  Sparkles,
+  Mic,
+  MicOff,
+  Volume2,
+  Square,
+  X
 } from 'lucide-react';
 
 import toast from 'react-hot-toast';
@@ -30,8 +35,78 @@ const TranslatorCard = () => {
   const [isTranslating, setIsTranslating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
+  // Voice States
+  const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(true);
+  const [synthSupported, setSynthSupported] = useState(true);
+
   const sourceRef = useRef(null);
   const targetRef = useRef(null);
+  const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    // Check Speech Recognition Support
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = true;
+
+      recognitionRef.current.onresult = (event) => {
+        let finalTranscript = '';
+        let interimTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        // Append final transcript or show interim
+        setSourceText((prev) => {
+          const currentText = prev.replace(/\s?\*.*?\*$/, ''); // remove previous interim
+          if (finalTranscript) {
+            return currentText + (currentText ? ' ' : '') + finalTranscript;
+          }
+          if (interimTranscript) {
+            return currentText + (currentText ? ' ' : '') + `*${interimTranscript}*`;
+          }
+          return prev;
+        });
+      };
+
+      recognitionRef.current.onerror = (event) => {
+        if (event.error === 'not-allowed') {
+          toast.error('Microphone access denied.');
+          setIsListening(false);
+        } else if (event.error !== 'no-speech') {
+          toast.error(`Speech recognition error: ${event.error}`);
+          setIsListening(false);
+        }
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+        // Clean up any interim markers if abruptly stopped
+        setSourceText(prev => prev.replace(/\s?\*.*?\*$/, ''));
+      };
+    } else {
+      setSpeechSupported(false);
+    }
+
+    // Check Speech Synthesis Support
+    if (!window.speechSynthesis) {
+      setSynthSupported(false);
+    }
+
+    return () => {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    };
+  }, []);
 
   const adjustTextareaHeight = (element) => {
     if (element) {
@@ -47,6 +122,52 @@ const TranslatorCard = () => {
   useEffect(() => {
     adjustTextareaHeight(targetRef.current);
   }, [translatedText]);
+
+  // Voice Handlers
+  const toggleListening = () => {
+    if (!speechSupported) {
+      toast.error('Speech recognition is not supported in this browser.');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      recognitionRef.current.lang = sourceLang === 'en' ? 'en-US' : sourceLang;
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+        toast.success('Listening...', { icon: '🎙️' });
+      } catch (err) {
+        console.error('Failed to start recognition', err);
+      }
+    }
+  };
+
+  const handleSpeak = () => {
+    if (!synthSupported) {
+      toast.error('Text-to-speech is not supported in this browser.');
+      return;
+    }
+
+    if (!translatedText) return;
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(translatedText);
+    utterance.lang = targetLang === 'en' ? 'en-US' : targetLang;
+
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    setIsSpeaking(true);
+    window.speechSynthesis.speak(utterance);
+  };
 
   const handleSwap = () => {
     setSourceLang(targetLang);
@@ -129,17 +250,18 @@ const TranslatorCard = () => {
   };
 
   return (
-    <div className="glass-card flex flex-col w-full overflow-hidden shadow-2xl shadow-blue-500/5 rounded-3xl">
+    <div className="glass-card flex flex-col w-full overflow-hidden shadow-2xl shadow-blue-500/5 rounded-2xl sm:rounded-3xl border-0 sm:border border-slate-200/50 dark:border-white/10">
 
       {/* Top Controls */}
-      <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-b border-slate-200/50 dark:border-white/10 bg-white/40 dark:bg-zinc-900/40">
+      <div className="flex flex-col md:flex-row items-center justify-between p-4 border-b border-slate-200/50 dark:border-white/10 bg-white/40 dark:bg-zinc-900/40 w-full gap-2 md:gap-0">
 
         {/* Source Language */}
-        <div className="relative w-full sm:w-auto flex-1 max-w-[200px]">
+        <div className="relative w-full md:w-auto md:flex-1 md:max-w-[220px]">
           <select
             value={sourceLang}
             onChange={(e) => setSourceLang(e.target.value)}
-            className="w-full bg-white/50 dark:bg-black/30 backdrop-blur-md font-medium text-slate-800 dark:text-slate-100 outline-none cursor-pointer hover:bg-white/80 dark:hover:bg-white/10 p-3 rounded-xl transition-all shadow-sm border border-slate-200 dark:border-white/10 appearance-none focus:ring-2 focus:ring-blue-500/50"
+            className="w-full bg-white/50 dark:bg-black/30 backdrop-blur-md font-medium text-slate-800 dark:text-slate-100 outline-none cursor-pointer hover:bg-white/80 dark:hover:bg-white/10 p-3.5 md:p-3 rounded-xl transition-all shadow-sm border border-slate-200 dark:border-white/10 appearance-none focus:ring-2 focus:ring-blue-500/50 text-base text-center md:text-left"
+            aria-label="Select Source Language"
           >
             {LANGUAGES.map((lang) => (
               <option
@@ -158,18 +280,20 @@ const TranslatorCard = () => {
           whileHover={{ scale: 1.1, rotate: 180 }}
           whileTap={{ scale: 0.9 }}
           onClick={handleSwap}
-          className="my-3 sm:my-0 p-3 rounded-full bg-white/80 dark:bg-zinc-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 shadow-md border border-slate-200 dark:border-white/10 z-10 transition-all duration-300"
+          className="my-3 md:my-0 p-3 rounded-full bg-white/80 dark:bg-zinc-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 shadow-md border border-slate-200 dark:border-white/10 z-10 transition-all duration-300 mx-auto"
           title="Swap languages"
+          aria-label="Swap languages"
         >
           <ArrowRightLeft size={20} />
         </motion.button>
 
         {/* Target Language */}
-        <div className="relative w-full sm:w-auto flex-1 max-w-[200px] flex justify-end">
+        <div className="relative w-full md:w-auto md:flex-1 md:max-w-[220px] flex md:justify-end">
           <select
             value={targetLang}
             onChange={(e) => setTargetLang(e.target.value)}
-            className="w-full bg-white/50 dark:bg-black/30 backdrop-blur-md font-medium text-slate-800 dark:text-slate-100 outline-none cursor-pointer hover:bg-white/80 dark:hover:bg-white/10 p-3 rounded-xl transition-all shadow-sm border border-slate-200 dark:border-white/10 appearance-none focus:ring-2 focus:ring-blue-500/50 text-right sm:text-left"
+            className="w-full bg-white/50 dark:bg-black/30 backdrop-blur-md font-medium text-slate-800 dark:text-slate-100 outline-none cursor-pointer hover:bg-white/80 dark:hover:bg-white/10 p-3.5 md:p-3 rounded-xl transition-all shadow-sm border border-slate-200 dark:border-white/10 appearance-none focus:ring-2 focus:ring-blue-500/50 text-center md:text-left text-base"
+            aria-label="Select Target Language"
           >
             {LANGUAGES.map((lang) => (
               <option
@@ -188,23 +312,79 @@ const TranslatorCard = () => {
       <div className="flex flex-col md:flex-row relative min-h-[320px]">
 
         {/* Source Text */}
-        <div className="flex-1 p-6 md:p-8 border-b md:border-b-0 md:border-r border-slate-200/50 dark:border-white/10 relative bg-white/30 dark:bg-transparent">
+        <div className="flex-1 p-5 md:p-8 border-b md:border-b-0 md:border-r border-slate-200/50 dark:border-white/10 relative bg-white/30 dark:bg-transparent group">
 
           <textarea
             ref={sourceRef}
             value={sourceText}
             onChange={(e) => setSourceText(e.target.value)}
             placeholder="Type text to translate..."
-            className="w-full bg-transparent resize-none outline-none text-xl md:text-2xl font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400/70 dark:placeholder:text-slate-500/70 min-h-[220px] leading-relaxed"
+            className="w-full bg-transparent resize-none outline-none text-xl md:text-2xl font-medium text-slate-800 dark:text-slate-100 placeholder:text-slate-400/70 dark:placeholder:text-slate-500/70 min-h-[200px] md:min-h-[220px] leading-relaxed pb-16"
+            aria-label="Source text to translate"
           />
 
-          <div className="absolute bottom-6 right-6 text-sm font-medium text-slate-400 dark:text-slate-500 bg-slate-100/50 dark:bg-zinc-800/50 px-3 py-1 rounded-full backdrop-blur-md">
+          {sourceText && (
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              onClick={() => setSourceText('')}
+              className="absolute top-5 right-5 md:top-6 md:right-6 p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+              title="Clear text"
+              aria-label="Clear text"
+            >
+              <X size={18} />
+            </motion.button>
+          )}
+
+          {/* Source Text Controls */}
+          <div className="absolute bottom-5 left-5 md:bottom-6 md:left-6 flex items-center gap-3">
+            {speechSupported && (
+              <div className="relative">
+                {isListening && (
+                  <motion.div
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                    className="absolute inset-0 bg-red-500 rounded-full blur-md"
+                  />
+                )}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={toggleListening}
+                  className={`relative p-3 rounded-xl shadow-md transition-all border flex items-center justify-center ${isListening
+                      ? 'bg-red-500 text-white border-red-600 hover:bg-red-600'
+                      : 'bg-white/80 dark:bg-zinc-800/80 text-slate-600 dark:text-slate-300 border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-zinc-700'
+                    }`}
+                  title={isListening ? 'Stop listening' : 'Start speaking'}
+                  aria-label={isListening ? 'Stop listening' : 'Start speaking'}
+                >
+                  {isListening ? <Square size={20} className="fill-current" /> : <Mic size={20} />}
+                </motion.button>
+              </div>
+            )}
+
+            <AnimatePresence>
+              {isListening && (
+                <motion.span
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  className="text-sm font-medium text-red-500 flex items-center gap-2"
+                >
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  Listening...
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div className="absolute bottom-5 right-5 md:bottom-6 md:right-6 text-sm font-medium text-slate-400 dark:text-slate-500 bg-slate-100/50 dark:bg-zinc-800/50 px-3 py-1 rounded-full backdrop-blur-md transition-opacity duration-300">
             {sourceText.length} characters
           </div>
         </div>
 
         {/* Target Text */}
-        <div className="flex-1 p-6 md:p-8 relative bg-blue-50/30 dark:bg-blue-900/5">
+        <div className="flex-1 p-5 md:p-8 relative bg-blue-50/30 dark:bg-blue-900/5">
 
           <AnimatePresence>
             {isTranslating && (
@@ -239,14 +419,45 @@ const TranslatorCard = () => {
                 ref={targetRef}
                 value={translatedText}
                 readOnly
-                className="w-full bg-transparent resize-none outline-none text-xl md:text-2xl font-medium text-slate-800 dark:text-slate-100 min-h-[220px] leading-relaxed"
+                className="w-full bg-transparent resize-none outline-none text-xl md:text-2xl font-medium text-slate-800 dark:text-slate-100 min-h-[200px] md:min-h-[220px] leading-relaxed pb-16"
+                aria-label="Translated text"
               />
+
+              {/* Target Text Controls */}
+              <div className="absolute bottom-5 left-5 md:bottom-6 md:left-6">
+                {synthSupported && (
+                  <div className="relative">
+                    {isSpeaking && (
+                      <motion.div
+                        animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }}
+                        transition={{ repeat: Infinity, duration: 1.5 }}
+                        className="absolute inset-0 bg-blue-500 rounded-full blur-md"
+                      />
+                    )}
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleSpeak}
+                      className={`relative p-3 rounded-xl shadow-md transition-all border flex items-center justify-center ${isSpeaking
+                          ? 'bg-blue-500 text-white border-blue-600 hover:bg-blue-600'
+                          : 'bg-white/80 dark:bg-zinc-800/80 text-slate-600 dark:text-slate-300 border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-zinc-700'
+                        }`}
+                      title={isSpeaking ? 'Stop speaking' : 'Listen to translation'}
+                      aria-label={isSpeaking ? 'Stop speaking' : 'Listen to translation'}
+                    >
+                      {isSpeaking ? <Square size={20} className="fill-current" /> : <Volume2 size={20} />}
+                    </motion.button>
+                  </div>
+                )}
+              </div>
 
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleCopy}
-                className="absolute bottom-6 right-6 p-3 rounded-xl bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 shadow-md transition-all text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-white/10 flex items-center gap-2"
+                className="absolute bottom-5 right-5 md:bottom-6 md:right-6 p-3 rounded-xl bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 shadow-md transition-all text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-white/10 flex items-center gap-2"
+                title="Copy translation"
+                aria-label="Copy translation"
               >
                 {isCopied ? (
                   <CheckCircle2
@@ -296,8 +507,9 @@ const TranslatorCard = () => {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleTranslate}
-          disabled={isTranslating || !sourceText.trim()}
-          className="relative overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 text-white font-bold py-3.5 px-8 rounded-2xl shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 w-full sm:w-auto justify-center transition-all duration-300"
+          disabled={isTranslating || !sourceText.trim() || isListening}
+          className="relative overflow-hidden bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-400 hover:to-purple-500 text-white font-bold py-4 px-6 md:py-3.5 md:px-8 rounded-2xl shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3 w-full sm:w-auto justify-center transition-all duration-300 text-base md:text-lg"
+          aria-label="Translate text"
         >
           {isTranslating ? (
             <>

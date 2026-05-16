@@ -31,7 +31,7 @@ function App() {
   const toggleTheme = () => setDarkMode(!darkMode);
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden font-sans selection:bg-primary-500/30">
+    <div className="min-h-screen flex flex-col relative overflow-x-hidden font-sans selection:bg-primary-500/30 w-full">
       {/* Animated Background Blobs */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none flex justify-center items-center">
         <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] max-w-[800px] max-h-[800px] rounded-full bg-primary-400/20 dark:bg-primary-900/20 mix-blend-multiply dark:mix-blend-screen filter blur-[100px] opacity-70 animate-blob" />
@@ -41,14 +41,14 @@ function App() {
 
       <Header darkMode={darkMode} toggleTheme={toggleTheme} />
       
-      <main className="flex-grow container mx-auto px-4 py-12 md:py-20 space-y-24 md:space-y-32">
+      <main className="flex-grow w-full px-0 sm:px-4 md:px-8 max-w-7xl mx-auto py-4 md:py-20 space-y-8 md:space-y-32 overflow-x-hidden">
         <Hero />
         
         <motion.div 
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.2 }}
-          className="max-w-5xl mx-auto w-full relative z-10"
+          className="w-full md:max-w-5xl mx-auto relative z-10"
         >
           <div className="absolute -inset-1 bg-gradient-to-r from-primary-500 to-purple-600 rounded-3xl blur opacity-20 dark:opacity-30 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
           <TranslatorCard />
@@ -59,7 +59,7 @@ function App() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6 }}
-          className="max-w-5xl mx-auto w-full"
+          className="w-full md:max-w-5xl mx-auto"
           id="history"
         >
           <TranslationHistory />
@@ -70,7 +70,7 @@ function App() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6 }}
-          className="max-w-6xl mx-auto w-full"
+          className="w-full md:max-w-6xl mx-auto"
           id="features"
         >
           <FeatureCards />

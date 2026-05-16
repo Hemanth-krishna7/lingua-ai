@@ -6,8 +6,8 @@ const Header = ({ darkMode, toggleTheme }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 glass border-b border-x-0 border-t-0 border-white/20 dark:border-white/5 bg-white/60 dark:bg-[#09090b]/60 backdrop-blur-xl">
-      <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+    <header className="sticky top-0 z-50 glass border-b border-x-0 border-t-0 border-white/20 dark:border-white/5 bg-white/60 dark:bg-[#09090b]/60 backdrop-blur-xl w-full">
+      <div className="w-full max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}

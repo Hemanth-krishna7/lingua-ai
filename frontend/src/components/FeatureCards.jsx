@@ -27,7 +27,7 @@ const FeatureCards = () => {
         <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">Why Choose LinguaAI?</h2>
         <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">Engineered for speed, accuracy, and absolute privacy.</p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
         {features.map((feature, idx) => (
           <motion.div 
             key={idx} 
@@ -36,7 +36,7 @@ const FeatureCards = () => {
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, delay: idx * 0.1 }}
             whileHover={{ y: -10, scale: 1.02 }}
-            className="glass-card p-8 flex flex-col items-center text-center space-y-5 bg-white/40 dark:bg-zinc-900/40 relative overflow-hidden group"
+            className="glass-card p-6 md:p-8 flex flex-col items-center text-center space-y-4 md:space-y-5 bg-white/40 dark:bg-zinc-900/40 relative overflow-hidden group"
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/10 dark:bg-primary-500/5 rounded-full blur-[40px] group-hover:bg-primary-500/20 transition-colors duration-500"></div>
             <div className="p-4 bg-white/80 dark:bg-zinc-800/80 rounded-2xl shadow-inner border border-slate-100 dark:border-white/5 z-10">
