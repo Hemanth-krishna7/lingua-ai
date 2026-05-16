@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import TranslatorCard from './components/TranslatorCard';
@@ -30,33 +31,64 @@ function App() {
   const toggleTheme = () => setDarkMode(!darkMode);
 
   return (
-    <div className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Background gradients */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary-400/20 dark:bg-primary-900/20 blur-[100px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-400/20 dark:bg-purple-900/20 blur-[100px]" />
+    <div className="min-h-screen flex flex-col relative overflow-hidden font-sans selection:bg-primary-500/30">
+      {/* Animated Background Blobs */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none flex justify-center items-center">
+        <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] max-w-[800px] max-h-[800px] rounded-full bg-primary-400/20 dark:bg-primary-900/20 mix-blend-multiply dark:mix-blend-screen filter blur-[100px] opacity-70 animate-blob" />
+        <div className="absolute top-[20%] right-[-10%] w-[60vw] h-[60vw] max-w-[600px] max-h-[600px] rounded-full bg-purple-400/20 dark:bg-purple-900/20 mix-blend-multiply dark:mix-blend-screen filter blur-[100px] opacity-70 animate-blob" style={{ animationDelay: '2s' }} />
+        <div className="absolute bottom-[-20%] left-[20%] w-[80vw] h-[80vw] max-w-[900px] max-h-[900px] rounded-full bg-blue-400/20 dark:bg-blue-900/20 mix-blend-multiply dark:mix-blend-screen filter blur-[100px] opacity-70 animate-blob" style={{ animationDelay: '4s' }} />
       </div>
 
       <Header darkMode={darkMode} toggleTheme={toggleTheme} />
       
-      <main className="flex-grow container mx-auto px-4 py-8 space-y-16">
+      <main className="flex-grow container mx-auto px-4 py-12 md:py-20 space-y-24 md:space-y-32">
         <Hero />
         
-        <div className="max-w-4xl mx-auto animate-slide-up" style={{ animationDelay: '0.1s' }}>
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.2 }}
+          className="max-w-5xl mx-auto w-full relative z-10"
+        >
+          <div className="absolute -inset-1 bg-gradient-to-r from-primary-500 to-purple-600 rounded-3xl blur opacity-20 dark:opacity-30 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
           <TranslatorCard />
-        </div>
+        </motion.div>
         
-        <div className="max-w-4xl mx-auto animate-slide-up" style={{ animationDelay: '0.2s' }}>
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="max-w-5xl mx-auto w-full"
+          id="history"
+        >
           <TranslationHistory />
-        </div>
+        </motion.div>
 
-        <div className="max-w-5xl mx-auto animate-slide-up" style={{ animationDelay: '0.3s' }}>
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.6 }}
+          className="max-w-6xl mx-auto w-full"
+          id="features"
+        >
           <FeatureCards />
-        </div>
+        </motion.div>
       </main>
 
       <Footer />
-      <Toaster position="bottom-right" />
+      <Toaster 
+        position="bottom-right" 
+        toastOptions={{
+          className: 'dark:bg-zinc-800 dark:text-white',
+          style: {
+            borderRadius: '16px',
+            background: 'rgba(255, 255, 255, 0.9)',
+            backdropFilter: 'blur(10px)',
+          }
+        }} 
+      />
     </div>
   );
 }
