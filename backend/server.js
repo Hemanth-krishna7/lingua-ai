@@ -1,6 +1,11 @@
+process.on('unhandledRejection', console.error);
+process.on('uncaughtException', console.error);
+
 const express = require('express');
 const cors = require('cors');
-const { translate } = require('google-translate-api-x');
+require('dotenv').config();
+
+const translationRouter = require('./src/routes/translationRouter');
 
 const app = express();
 const PORT = 5000;
@@ -14,41 +19,10 @@ app.get('/', (req, res) => {
   res.send('LinguaAI Backend Running');
 });
 
-// Translation Route
-app.post('/api/translate', async (req, res) => {
-  try {
+// Mount Routes
+app.use('/api/translate', translationRouter);
 
-    const { q, source, target } = req.body;
-
-    if (!q || !source || !target) {
-      return res.status(400).json({
-        error: 'Missing required fields',
-      });
-    }
-
-    console.log('Incoming Request:', req.body);
-
-    // Google Translate
-    const result = await translate(q, {
-      from: source,
-      to: target,
-    });
-
-    console.log('Translated:', result.text);
-
-    res.json({
-      translatedText: result.text,
-    });
-
-  } catch (error) {
-
-    console.error('TRANSLATION ERROR:', error.message);
-
-    res.status(500).json({
-      error: 'Translation failed',
-    });
-  }
-});
+// Empty to remove old /api/translate route
 
 // Health Route
 app.get('/health', (req, res) => {

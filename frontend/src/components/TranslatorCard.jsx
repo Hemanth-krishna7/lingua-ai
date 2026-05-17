@@ -10,12 +10,14 @@ import {
   MicOff,
   Volume2,
   Square,
-  X
+  X,
+  Gauge
 } from 'lucide-react';
 
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
+import CommunicationModes from './CommunicationModes';
 
 const LANGUAGES = [
   { code: 'en', name: 'English' },
@@ -34,6 +36,30 @@ const TranslatorCard = () => {
   const [translatedText, setTranslatedText] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+
+  const [tone, setTone] = useState('Standard');
+  const [dialect, setDialect] = useState('Standard');
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  
+  const [processingStep, setProcessingStep] = useState(0);
+
+  const isSmart = dialect !== 'Standard' || tone !== 'Standard';
+  const PROCESSING_MESSAGES = [
+    "Crafting natural conversation...",
+    "Applying local dialect...",
+    "Refining human-like phrasing..."
+  ];
+
+  useEffect(() => {
+    let interval;
+    if (isTranslating && isSmart) {
+      setProcessingStep(0);
+      interval = setInterval(() => {
+        setProcessingStep(prev => (prev + 1) % 3);
+      }, 1500);
+    }
+    return () => clearInterval(interval);
+  }, [isTranslating, isSmart]);
 
   // Voice States
   const [isListening, setIsListening] = useState(false);
@@ -161,6 +187,7 @@ const TranslatorCard = () => {
 
     const utterance = new SpeechSynthesisUtterance(translatedText);
     utterance.lang = targetLang === 'en' ? 'en-US' : targetLang;
+    utterance.rate = playbackSpeed;
 
     utterance.onend = () => setIsSpeaking(false);
     utterance.onerror = () => setIsSpeaking(false);
@@ -196,6 +223,7 @@ const TranslatorCard = () => {
       return;
     }
 
+    console.log('[FRONTEND SUBMIT]', { q: sourceText, source: sourceLang, target: targetLang, tone, dialect });
     setIsTranslating(true);
 
     try {
@@ -204,13 +232,15 @@ const TranslatorCard = () => {
         {
           q: sourceText,
           source: sourceLang,
-          target: targetLang
+          target: targetLang,
+          tone,
+          dialect
         }
       );
 
       const resultText = response.data.translatedText;
-
       setTranslatedText(resultText);
+
 
       const historyItem = {
         sourceLang:
@@ -252,15 +282,17 @@ const TranslatorCard = () => {
   return (
     <div className="glass-card flex flex-col w-full overflow-hidden shadow-2xl shadow-blue-500/5 rounded-2xl sm:rounded-3xl border-0 sm:border border-slate-200/50 dark:border-white/10">
 
+
+
       {/* Top Controls */}
-      <div className="flex flex-col md:flex-row items-center justify-between p-4 border-b border-slate-200/50 dark:border-white/10 bg-white/40 dark:bg-zinc-900/40 w-full gap-2 md:gap-0">
+      <div className="flex flex-row items-center justify-between p-2 sm:p-4 border-b border-slate-200/50 dark:border-white/10 bg-white/40 dark:bg-zinc-900/40 w-full gap-1 sm:gap-2">
 
         {/* Source Language */}
-        <div className="relative w-full md:w-auto md:flex-1 md:max-w-[220px]">
+        <div className="relative flex-1 min-w-0 max-w-[200px]">
           <select
             value={sourceLang}
             onChange={(e) => setSourceLang(e.target.value)}
-            className="w-full bg-white/50 dark:bg-black/30 backdrop-blur-md font-medium text-slate-800 dark:text-slate-100 outline-none cursor-pointer hover:bg-white/80 dark:hover:bg-white/10 p-3.5 md:p-3 rounded-xl transition-all shadow-sm border border-slate-200 dark:border-white/10 appearance-none focus:ring-2 focus:ring-blue-500/50 text-base text-center md:text-left"
+            className="w-full bg-white/50 dark:bg-black/30 backdrop-blur-md font-medium text-slate-800 dark:text-slate-100 outline-none cursor-pointer hover:bg-white/80 dark:hover:bg-white/10 p-2.5 sm:p-3 rounded-xl transition-all shadow-sm border border-slate-200 dark:border-white/10 appearance-none focus:ring-2 focus:ring-blue-500/50 text-base text-center sm:text-left text-ellipsis overflow-hidden whitespace-nowrap"
             aria-label="Select Source Language"
           >
             {LANGUAGES.map((lang) => (
@@ -280,19 +312,19 @@ const TranslatorCard = () => {
           whileHover={{ scale: 1.1, rotate: 180 }}
           whileTap={{ scale: 0.9 }}
           onClick={handleSwap}
-          className="my-3 md:my-0 p-3 rounded-full bg-white/80 dark:bg-zinc-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 shadow-md border border-slate-200 dark:border-white/10 z-10 transition-all duration-300 mx-auto"
+          className="mx-1 sm:mx-2 p-2 sm:p-3 rounded-full bg-white/80 dark:bg-zinc-800/80 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 shadow-md border border-slate-200 dark:border-white/10 z-10 transition-all duration-300 shrink-0"
           title="Swap languages"
           aria-label="Swap languages"
         >
-          <ArrowRightLeft size={20} />
+          <ArrowRightLeft className="w-4 h-4 sm:w-5 sm:h-5" />
         </motion.button>
 
         {/* Target Language */}
-        <div className="relative w-full md:w-auto md:flex-1 md:max-w-[220px] flex md:justify-end">
+        <div className="relative flex-1 min-w-0 max-w-[200px] flex justify-end">
           <select
             value={targetLang}
             onChange={(e) => setTargetLang(e.target.value)}
-            className="w-full bg-white/50 dark:bg-black/30 backdrop-blur-md font-medium text-slate-800 dark:text-slate-100 outline-none cursor-pointer hover:bg-white/80 dark:hover:bg-white/10 p-3.5 md:p-3 rounded-xl transition-all shadow-sm border border-slate-200 dark:border-white/10 appearance-none focus:ring-2 focus:ring-blue-500/50 text-center md:text-left text-base"
+            className="w-full bg-white/50 dark:bg-black/30 backdrop-blur-md font-medium text-slate-800 dark:text-slate-100 outline-none cursor-pointer hover:bg-white/80 dark:hover:bg-white/10 p-2.5 sm:p-3 rounded-xl transition-all shadow-sm border border-slate-200 dark:border-white/10 appearance-none focus:ring-2 focus:ring-blue-500/50 text-center sm:text-left text-base text-ellipsis overflow-hidden whitespace-nowrap"
             aria-label="Select Target Language"
           >
             {LANGUAGES.map((lang) => (
@@ -342,9 +374,9 @@ const TranslatorCard = () => {
               <div className="relative">
                 {isListening && (
                   <motion.div
-                    animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
-                    transition={{ repeat: Infinity, duration: 1.5 }}
-                    className="absolute inset-0 bg-red-500 rounded-full blur-md"
+                    animate={{ scale: [1, 1.4, 1], opacity: [0.5, 0.1, 0.5] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                    className="absolute inset-0 bg-red-500 rounded-xl blur-md"
                   />
                 )}
                 <motion.button
@@ -400,8 +432,19 @@ const TranslatorCard = () => {
                     size={40}
                   />
 
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">
-                    Translating magically...
+                  <span className="text-blue-600 dark:text-blue-400 font-medium text-center max-w-[200px]">
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={isSmart ? processingStep : 'standard'}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        transition={{ duration: 0.3 }}
+                        className="block"
+                      >
+                        {isSmart ? PROCESSING_MESSAGES[processingStep] : "Translating magically..."}
+                      </motion.span>
+                    </AnimatePresence>
                   </span>
                 </div>
               </motion.div>
@@ -424,30 +467,44 @@ const TranslatorCard = () => {
               />
 
               {/* Target Text Controls */}
-              <div className="absolute bottom-5 left-5 md:bottom-6 md:left-6">
+              <div className="absolute bottom-5 left-5 md:bottom-6 md:left-6 flex items-center gap-3">
                 {synthSupported && (
-                  <div className="relative">
-                    {isSpeaking && (
-                      <motion.div
-                        animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }}
-                        transition={{ repeat: Infinity, duration: 1.5 }}
-                        className="absolute inset-0 bg-blue-500 rounded-full blur-md"
-                      />
-                    )}
+                  <>
+                    <div className="relative">
+                      {isSpeaking && (
+                        <motion.div
+                          animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }}
+                          transition={{ repeat: Infinity, duration: 1.5 }}
+                          className="absolute inset-0 bg-blue-500 rounded-full blur-md"
+                        />
+                      )}
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={handleSpeak}
+                        className={`relative p-3 rounded-xl shadow-md transition-all border flex items-center justify-center ${isSpeaking
+                            ? 'bg-blue-500 text-white border-blue-600 hover:bg-blue-600'
+                            : 'bg-white/80 dark:bg-zinc-800/80 text-slate-600 dark:text-slate-300 border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-zinc-700'
+                          }`}
+                        title={isSpeaking ? 'Stop speaking' : 'Listen to translation'}
+                        aria-label={isSpeaking ? 'Stop speaking' : 'Listen to translation'}
+                      >
+                        {isSpeaking ? <Square size={20} className="fill-current" /> : <Volume2 size={20} />}
+                      </motion.button>
+                    </div>
+
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      onClick={handleSpeak}
-                      className={`relative p-3 rounded-xl shadow-md transition-all border flex items-center justify-center ${isSpeaking
-                          ? 'bg-blue-500 text-white border-blue-600 hover:bg-blue-600'
-                          : 'bg-white/80 dark:bg-zinc-800/80 text-slate-600 dark:text-slate-300 border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-zinc-700'
-                        }`}
-                      title={isSpeaking ? 'Stop speaking' : 'Listen to translation'}
-                      aria-label={isSpeaking ? 'Stop speaking' : 'Listen to translation'}
+                      onClick={() => setPlaybackSpeed(prev => prev === 1 ? 0.75 : prev === 0.75 ? 0.5 : 1)}
+                      className="p-3 rounded-xl bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 shadow-md transition-all text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-white/10 flex items-center justify-center gap-1 font-medium text-xs"
+                      title={`Playback speed: ${playbackSpeed}x`}
+                      aria-label="Toggle playback speed"
                     >
-                      {isSpeaking ? <Square size={20} className="fill-current" /> : <Volume2 size={20} />}
+                      <Gauge size={16} />
+                      <span className="w-6">{playbackSpeed}x</span>
                     </motion.button>
-                  </div>
+                  </>
                 )}
               </div>
 
@@ -499,6 +556,11 @@ const TranslatorCard = () => {
           )}
         </div>
       </div>
+
+      <CommunicationModes 
+        tone={tone} setTone={setTone}
+        dialect={dialect} setDialect={setDialect}
+      />
 
       {/* Bottom Action */}
       <div className="p-4 bg-white/40 dark:bg-zinc-900/40 border-t border-slate-200/50 dark:border-white/10 flex justify-end">
