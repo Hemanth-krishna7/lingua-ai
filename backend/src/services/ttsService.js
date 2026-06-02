@@ -21,7 +21,7 @@ function getVoiceIdBySpeakerProfile(profile) {
  */
 function getVoiceSettingsByTone(tone) {
   const normalizedTone = (tone || 'Standard').toLowerCase();
-  
+
   switch (normalizedTone) {
     case 'professional':
       return {
@@ -97,7 +97,7 @@ async function callElevenLabs(text, apiKey, voiceId, voiceSettings, attempt = 1)
     });
 
     clearTimeout(timeoutId);
-    
+
     console.log('[TTS API RESPONSE] ElevenLabs returned status:', response.status);
     console.log('[TTS STATUS] Success on attempt', attempt);
     return response.data;
@@ -110,6 +110,13 @@ async function callElevenLabs(text, apiKey, voiceId, voiceSettings, attempt = 1)
 
     console.error(`[TTS ERROR] Attempt ${attempt} failed: ${errorMessage}`);
     console.log('[TTS STATUS] Failed with status code:', errorStatus);
+
+    if (error.response) {
+      console.log(
+        '[ELEVENLABS RESPONSE]',
+        JSON.stringify(error.response.data, null, 2)
+      );
+    }
 
     // If it failed and we haven't retried yet, perform a single retry (excluding deliberate Aborts)
     if (attempt === 1 && !isAbort) {
@@ -156,10 +163,10 @@ async function generateSpeech({ text, dialect, language, tone, speakerProfile })
 
   try {
     const audioBuffer = await callElevenLabs(text, apiKey, voiceId, voiceSettings);
-    
+
     // Store in-memory cache
     ttsCache.set(cacheKey, audioBuffer);
-    
+
     console.log('[TTS SUCCESS] Audio generated successfully. Buffer size:', audioBuffer.byteLength);
     return audioBuffer;
   } catch (error) {
