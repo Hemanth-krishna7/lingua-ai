@@ -42,7 +42,7 @@ const TranslatorCard = () => {
   const [dialect, setDialect] = useState('Standard');
   const [speakerProfile, setSpeakerProfile] = useState('Female');
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  
+
   const [processingStep, setProcessingStep] = useState(0);
 
   const isSmart = dialect !== 'Standard' || tone !== 'Standard';
@@ -267,7 +267,7 @@ const TranslatorCard = () => {
     window.speechSynthesis.cancel();
 
     let utteranceLang = 'hi-IN';
-    
+
     if (dialect === 'Hinglish') {
       utteranceLang = 'en-IN';
     } else if (dialect === 'Hyderabadi Hindi') {
@@ -361,7 +361,7 @@ const TranslatorCard = () => {
 
     // 4. Start fresh speech generation (optimistic transition)
     setSpeechState('generating');
-    
+
     // Unlock mobile audio context instantly on direct user click thread
     audioControllerRef.current.unlock();
 
@@ -385,7 +385,7 @@ const TranslatorCard = () => {
 
     try {
       const response = await axios.post(
-        'http://localhost:5000/api/tts',
+        `${import.meta.env.VITE_API_URL}/api/tts`,
         {
           text: translatedText,
           dialect: dialect,
@@ -474,7 +474,7 @@ const TranslatorCard = () => {
 
     try {
       const response = await axios.post(
-        'http://localhost:5000/api/translate',
+        `${import.meta.env.VITE_API_URL}/api/translate`,
         {
           q: sourceText,
           source: sourceLang,
@@ -630,8 +630,8 @@ const TranslatorCard = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={toggleListening}
                   className={`relative p-3 rounded-xl shadow-md transition-all border flex items-center justify-center ${isListening
-                      ? 'bg-red-500 text-white border-red-600 hover:bg-red-600'
-                      : 'bg-white/80 dark:bg-zinc-800/80 text-slate-600 dark:text-slate-300 border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-zinc-700'
+                    ? 'bg-red-500 text-white border-red-600 hover:bg-red-600'
+                    : 'bg-white/80 dark:bg-zinc-800/80 text-slate-600 dark:text-slate-300 border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-zinc-700'
                     }`}
                   title={isListening ? 'Stop listening' : 'Start speaking'}
                   aria-label={isListening ? 'Stop listening' : 'Start speaking'}
@@ -728,24 +728,23 @@ const TranslatorCard = () => {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={handleSpeak}
-                        className={`relative p-3 rounded-xl shadow-md transition-all border flex items-center justify-center ${
-                          speechState === 'playing' || speechState === 'generating'
-                            ? 'bg-blue-500 text-white border-blue-600 hover:bg-blue-600'
-                            : 'bg-white/80 dark:bg-zinc-800/80 text-slate-600 dark:text-slate-300 border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-zinc-700'
-                        }`}
+                        className={`relative p-3 rounded-xl shadow-md transition-all border flex items-center justify-center ${speechState === 'playing' || speechState === 'generating'
+                          ? 'bg-blue-500 text-white border-blue-600 hover:bg-blue-600'
+                          : 'bg-white/80 dark:bg-zinc-800/80 text-slate-600 dark:text-slate-300 border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-zinc-700'
+                          }`}
                         title={
                           speechState === 'playing'
                             ? 'Stop speaking'
                             : speechState === 'generating'
-                            ? 'Cancel audio generation'
-                            : 'Listen to translation'
+                              ? 'Cancel audio generation'
+                              : 'Listen to translation'
                         }
                         aria-label={
                           speechState === 'playing'
                             ? 'Stop speaking'
                             : speechState === 'generating'
-                            ? 'Cancel audio generation'
-                            : 'Listen to translation'
+                              ? 'Cancel audio generation'
+                              : 'Listen to translation'
                         }
                       >
                         {speechState === 'generating' ? (
@@ -836,7 +835,7 @@ const TranslatorCard = () => {
         </div>
       </div>
 
-      <CommunicationModes 
+      <CommunicationModes
         tone={tone} setTone={setTone}
         dialect={dialect} setDialect={setDialect}
         speakerProfile={speakerProfile} setSpeakerProfile={setSpeakerProfile}
