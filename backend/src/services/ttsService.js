@@ -112,10 +112,17 @@ async function callElevenLabs(text, apiKey, voiceId, voiceSettings, attempt = 1)
     console.log('[TTS STATUS] Failed with status code:', errorStatus);
 
     if (error.response) {
-      console.log(
-        '[ELEVENLABS RESPONSE]',
-        JSON.stringify(error.response.data, null, 2)
-      );
+      try {
+        console.log(
+          '[ELEVENLABS RESPONSE]',
+          Buffer.from(error.response.data).toString('utf8')
+        );
+      } catch (e) {
+        console.log(
+          '[ELEVENLABS RESPONSE]',
+          error.response.data
+        );
+      }
     }
 
     // If it failed and we haven't retried yet, perform a single retry (excluding deliberate Aborts)
@@ -146,6 +153,12 @@ async function generateSpeech({ text, dialect, language, tone, speakerProfile })
   console.log('[TTS VOICE SETTINGS]', voiceSettings);
 
   const apiKey = process.env.ELEVENLABS_API_KEY;
+
+  console.log(
+    '[ELEVENLABS KEY]',
+    apiKey ? apiKey.substring(0, 8) + '...' : 'MISSING'
+  );
+
   if (!apiKey) {
     const errorMsg = 'ELEVENLABS_API_KEY is not defined in environment';
     console.error('[TTS FAILURE] API Key missing');
