@@ -80,7 +80,8 @@ LinguaAI
 
 ### Standard Translation
 
-(Add screenshot after deployment)
+<img width="2044" height="932" alt="image" src="https://github.com/user-attachments/assets/c8424a79-c062-4aef-a490-127e6e26cfc8" />
+
 
 ### Hinglish Translation
 
