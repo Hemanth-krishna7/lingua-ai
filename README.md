@@ -11,7 +11,7 @@ The project also includes speech playback, translation history, voice profile se
 ## Live Demo
 
 **Website:**
-(Add deployed website link here)
+https://lingua-ai-seven-drab.vercel.app/
 
 ---
 
@@ -76,32 +76,35 @@ LinguaAI
 
 ### Main Interface
 
-(Add screenshot after deployment)
+<img width="2559" height="1326" alt="Screenshot 2026-06-03 220820" src="https://github.com/user-attachments/assets/21dbdaf4-f591-4259-8557-1d9b99e0dbef" />
 
 ### Standard Translation
 
-
+<img width="2559" height="1313" alt="Screenshot 2026-06-03 221240" src="https://github.com/user-attachments/assets/aa914233-8ee5-4758-bbd6-cb0b86ee4e6a" />
 
 
 ### Hinglish Translation
 
-(Add screenshot after deployment)
+<img width="2559" height="1346" alt="image" src="https://github.com/user-attachments/assets/be607ee6-0d63-48fc-be4b-02e5700984f6" />
 
 ### Hyderabadi Hindi Translation
 
-(Add screenshot after deployment)
+<img width="2559" height="1337" alt="image" src="https://github.com/user-attachments/assets/76eac507-ad89-4c69-b5be-34b01c68e9ae" />
 
 ### Voice Playback
 
-(Add screenshot after deployment)
+<img width="2559" height="1322" alt="image" src="https://github.com/user-attachments/assets/197ffc5a-967d-4ab0-85b1-988a5b9c589d" />
 
 ### Translation History
 
-(Add screenshot after deployment)
+<img width="2559" height="1335" alt="image" src="https://github.com/user-attachments/assets/e9201107-69da-41d4-81aa-2600dc4fa335" />
 
 ### Mobile View
 
-(Add screenshot after deployment)
+<img width="514" height="1153" alt="image" src="https://github.com/user-attachments/assets/14ee47da-8279-4f39-82bd-dc6390de932a" />
+
+<img width="512" height="1157" alt="image" src="https://github.com/user-attachments/assets/6f065482-3f4d-4369-a9b9-69384409ecdf" />
+
 
 ---
 
