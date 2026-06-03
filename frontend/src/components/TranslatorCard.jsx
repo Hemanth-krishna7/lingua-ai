@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   ArrowRightLeft,
   Copy,
@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   Sparkles,
   Mic,
-  MicOff,
   Volume2,
   Square,
   X,
@@ -17,7 +16,6 @@ import {
 import toast from 'react-hot-toast';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AudioController } from '../utils/audioController';
 import CommunicationModes from './CommunicationModes';
 
 const LANGUAGES = [
@@ -66,7 +64,6 @@ const TranslatorCard = () => {
   // Voice States
   const [isListening, setIsListening] = useState(false);
   const [speechState, setSpeechState] = useState('idle'); // 'idle' | 'generating' | 'playing' | 'paused' | 'error'
-  const isSpeaking = speechState === 'playing';
   const [speechSupported, setSpeechSupported] = useState(true);
   const [synthSupported, setSynthSupported] = useState(true);
   const [voices, setVoices] = useState([]);
@@ -77,8 +74,47 @@ const TranslatorCard = () => {
   const utteranceRef = useRef(null);
   const speechStateRef = useRef('idle');
   const selectedVoiceNameRef = useRef('Default');
-  const audioControllerRef = useRef(new AudioController());
-  const abortControllerRef = useRef(null);
+
+  const getSpeechLangCode = (lang) => {
+    if (lang === 'hi') return 'hi-IN';
+    if (lang === 'en') return 'en-US';
+    return lang;
+  };
+
+  const isDialectAudioDisabled = dialect === 'Hinglish' || dialect === 'Hyderabadi Hindi' || dialect === 'Anime Casual';
+
+  const hasNativeVoice = (() => {
+    if (!synthSupported || voices.length === 0) return false;
+    const utteranceLang = getSpeechLangCode(targetLang);
+    return !!findVoice(utteranceLang);
+  })();
+
+  const isAudioSupported = synthSupported && !isDialectAudioDisabled && hasNativeVoice;
+
+  // Development diagnostics logger
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      const langCode = getSpeechLangCode(targetLang);
+      const voice = findVoice(langCode);
+      
+      let reason = 'Native voice available';
+      if (isDialectAudioDisabled) {
+        reason = 'Dialect mode restricted';
+      } else if (!voice) {
+        reason = 'No native voice found';
+      }
+
+      if (import.meta.env.DEV) {
+        console.log(`[DEV MODE - SPEECH DIAGNOSTICS]
+Target Language: ${targetLang}
+Dialect: ${dialect}
+Voice Name: ${voice ? voice.name : 'None'}
+Voice Lang: ${voice ? voice.lang : 'None'}
+Audio Enabled: ${isAudioSupported}
+Reason: ${reason}`);
+      }
+    }
+  }, [targetLang, dialect, voices, speakerProfile]);
 
   useEffect(() => {
     speechStateRef.current = speechState;
@@ -98,6 +134,21 @@ const TranslatorCard = () => {
       if (window.speechSynthesis) {
         window.speechSynthesis.removeEventListener('voiceschanged', updateVoices);
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    const handlePopulateSourceText = (e) => {
+      if (e.detail && e.detail.text !== undefined) {
+        setSourceText(e.detail.text);
+        if (sourceRef.current) {
+          sourceRef.current.focus();
+        }
+      }
+    };
+    window.addEventListener('populateSourceText', handlePopulateSourceText);
+    return () => {
+      window.removeEventListener('populateSourceText', handlePopulateSourceText);
     };
   }, []);
 
@@ -161,16 +212,12 @@ const TranslatorCard = () => {
     return () => {
       if (recognitionRef.current) recognitionRef.current.stop();
       if (speechStateRef.current !== 'idle') {
-        console.log('[SPEECH STOP]');
+        if (import.meta.env.DEV) {
+          console.log('[SPEECH STOP]');
+        }
       }
       if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
-      }
-      if (audioControllerRef.current) {
-        audioControllerRef.current.destroy();
-      }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
       }
     };
   }, []);
@@ -195,15 +242,6 @@ const TranslatorCard = () => {
     changeSpeechState('idle');
     setSpeechState('idle');
 
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-
-    if (audioControllerRef.current) {
-      audioControllerRef.current.stop();
-    }
-
     if (window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
@@ -217,24 +255,87 @@ const TranslatorCard = () => {
     setSpeechState(newState);
 
     if (newState === 'playing') {
-      console.log('[SPEECH START]');
-      console.log('[SPEECH VOICE]', selectedVoiceNameRef.current);
-      console.log('[SPEECH TEXT]', translatedText);
+      if (import.meta.env.DEV) {
+        console.log('[SPEECH START]');
+        console.log('[SPEECH VOICE]', selectedVoiceNameRef.current);
+        console.log('[SPEECH TEXT]', translatedText);
+      }
     } else if (newState === 'paused' || newState === 'idle') {
       if (oldState === 'playing' || oldState === 'paused') {
-        console.log('[SPEECH STOP]');
+        if (import.meta.env.DEV) {
+          console.log('[SPEECH STOP]');
+        }
       }
     }
   }
 
   function findVoice(langCode) {
-    // Try exact match first
-    let voice = voices.find(v => v.lang === langCode || v.lang === langCode.replace('-', '_'));
-    if (!voice) {
-      const targetPrefix = langCode.toLowerCase().replace('_', '-');
-      voice = voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith(targetPrefix));
+    // Get all voices matching the language code or prefix
+    const exactLang = langCode.replace('-', '_');
+    const targetPrefix = langCode.toLowerCase().split('-')[0].split('_')[0];
+
+    // Filter voices matching the language
+    const langVoices = voices.filter(v => 
+      v.lang === langCode || 
+      v.lang === exactLang ||
+      v.lang.toLowerCase().replace('_', '-').startsWith(targetPrefix)
+    );
+
+    // If no voice matches the language prefix, return null immediately
+    if (langVoices.length === 0) {
+      return null;
     }
-    return voice;
+
+    const isFemale = speakerProfile === 'Female';
+    const isMale = speakerProfile === 'Male';
+
+    const femaleKeywords = [
+      'female', 'zira', 'hazel', 'susan', 'heera', 'samantha', 'victoria', 'karen', 'moira', 
+      'tessa', 'veena', 'fiona', 'haruka', 'nanami', 'kyoko', 'mizuki', 'salli', 'kimberly', 
+      'kendra', 'joanna', 'ivy', 'nicole', 'mei-jia', 'sin-ji', 'ting-ting', 'yaoyao', 'elsa'
+    ];
+
+    const maleKeywords = [
+      'male', 'david', 'george', 'ravi', 'mark', 'daniel', 'alex', 'fred', 'henrik', 'ichiro', 
+      'keita', 'joey', 'justin', 'matthew', 'russell', 'kangkang', 'zhiyu'
+    ];
+
+    const genderKeywords = isFemale ? femaleKeywords : (isMale ? maleKeywords : []);
+
+    const matchedVoices = langVoices.filter(v => {
+      const nameLower = v.name.toLowerCase();
+      return genderKeywords.some(kw => {
+        if (kw === 'male') {
+          return nameLower.includes('male') && !nameLower.includes('female');
+        }
+        return nameLower.includes(kw);
+      });
+    });
+
+    let selectedVoice = null;
+
+    // Priority 1: Remote voice matching language + gender
+    if (genderKeywords.length > 0) {
+      selectedVoice = matchedVoices.find(v => !v.localService);
+    }
+
+    // Priority 2: Local voice matching language + gender
+    if (!selectedVoice && genderKeywords.length > 0) {
+      selectedVoice = matchedVoices.find(v => v.localService);
+    }
+
+    // Priority 3: Any remote voice matching language
+    if (!selectedVoice) {
+      selectedVoice = langVoices.find(v => !v.localService);
+    }
+
+    // Priority 4: Any local voice matching language
+    if (!selectedVoice) {
+      selectedVoice = langVoices.find(v => v.localService);
+    }
+
+    // Priority 5: Null (returning selectedVoice which is null if none matched)
+    return selectedVoice;
   }
 
   // Voice Handlers
@@ -259,26 +360,41 @@ const TranslatorCard = () => {
     }
   };
 
-  const fallbackToBrowserSpeech = () => {
-    console.log('[TTS FALLBACK] Falling back to browser speech synthesis');
-    if (audioControllerRef.current) {
-      audioControllerRef.current.stop();
+  const handleSpeak = () => {
+    if (!synthSupported) {
+      toast.error('Text-to-speech is not supported in this browser.');
+      return;
     }
+
+    if (!isAudioSupported) {
+      if (isDialectAudioDisabled) {
+        toast.error('Audio playback is available only for standard languages.');
+      } else {
+        toast.error('Audio unavailable on this device.');
+      }
+      return;
+    }
+
+    if (!translatedText) return;
+
+    // 1. If currently playing, toggle to pause
+    if (speechState === 'playing') {
+      window.speechSynthesis.pause();
+      changeSpeechState('paused');
+      return;
+    }
+
+    // 2. If currently paused, toggle to play (resume)
+    if (speechState === 'paused') {
+      window.speechSynthesis.resume();
+      changeSpeechState('playing');
+      return;
+    }
+
+    // 3. Start fresh speech generation (Web Speech API is instantaneous)
     window.speechSynthesis.cancel();
 
-    let utteranceLang = 'hi-IN';
-
-    if (dialect === 'Hinglish') {
-      utteranceLang = 'en-IN';
-    } else if (dialect === 'Hyderabadi Hindi') {
-      utteranceLang = 'en-IN';
-    } else {
-      if (targetLang === 'hi') {
-        utteranceLang = 'hi-IN';
-      } else {
-        utteranceLang = targetLang === 'en' ? 'en-US' : targetLang;
-      }
-    }
+    const utteranceLang = getSpeechLangCode(targetLang);
 
     const utterance = new SpeechSynthesisUtterance(translatedText);
     utteranceRef.current = utterance; // Keep ref to prevent GC
@@ -311,137 +427,6 @@ const TranslatorCard = () => {
     window.speechSynthesis.speak(utterance);
   };
 
-  const handleSpeak = async () => {
-    if (!synthSupported) {
-      toast.error('Text-to-speech is not supported in this browser.');
-      return;
-    }
-
-    if (!translatedText) return;
-
-    // 1. If currently playing, toggle to pause
-    if (speechState === 'playing') {
-      if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.pause();
-        changeSpeechState('paused');
-      } else {
-        audioControllerRef.current.pause();
-        setSpeechState('paused');
-      }
-      return;
-    }
-
-    // 2. If currently paused, toggle to play (resume)
-    if (speechState === 'paused') {
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-        changeSpeechState('playing');
-      } else {
-        const resumed = audioControllerRef.current.resume();
-        if (resumed) {
-          setSpeechState('playing');
-        } else {
-          fallbackToBrowserSpeech();
-        }
-      }
-      return;
-    }
-
-    // 3. If currently generating, a second click acts as a cancel
-    if (speechState === 'generating') {
-      console.log('[AUDIO STOP] Generation cancelled by user');
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-        abortControllerRef.current = null;
-      }
-      audioControllerRef.current.stop();
-      setSpeechState('idle');
-      return;
-    }
-
-    // 4. Start fresh speech generation (optimistic transition)
-    setSpeechState('generating');
-
-    // Unlock mobile audio context instantly on direct user click thread
-    audioControllerRef.current.unlock();
-
-    // Set up AbortController for cancellation
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    const currentAbortController = new AbortController();
-    abortControllerRef.current = currentAbortController;
-
-    // Timeout detection: 8 seconds
-    const timeoutId = setTimeout(() => {
-      if (speechStateRef.current === 'generating' && abortControllerRef.current === currentAbortController) {
-        console.warn('[TTS TIMEOUT] Generation exceeded 8 seconds. Falling back to browser speech.');
-        toast.error('Voice generation timed out. Falling back to default speech.');
-        currentAbortController.abort();
-        abortControllerRef.current = null;
-        fallbackToBrowserSpeech();
-      }
-    }, 8000);
-
-    try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/tts`,
-        {
-          text: translatedText,
-          dialect: dialect,
-          language: targetLang,
-          tone: tone,
-          speakerProfile: speakerProfile
-        },
-        {
-          responseType: 'arraybuffer',
-          signal: currentAbortController.signal
-        }
-      );
-
-      clearTimeout(timeoutId);
-
-      // Verify that this is still the active request (preventing race conditions)
-      if (abortControllerRef.current !== currentAbortController) {
-        return; // Ignore older requests
-      }
-
-      // Convert array buffer response to object URL
-      const blob = new Blob([response.data], { type: 'audio/mpeg' });
-      const blobUrl = URL.createObjectURL(blob);
-
-      audioControllerRef.current.play(
-        blobUrl,
-        () => {
-          setSpeechState('playing');
-        },
-        () => {
-          setSpeechState('idle');
-        },
-        (error) => {
-          console.error('[AUDIO PLAY ERROR]', error);
-          fallbackToBrowserSpeech();
-        }
-      );
-
-    } catch (err) {
-      clearTimeout(timeoutId);
-
-      // Ignore standard Abort error
-      if (err.name === 'CanceledError' || err.name === 'AbortError') {
-        return;
-      }
-
-      console.error('[TTS API ERROR] ElevenLabs request failed:', err.message);
-
-      // Verify this is still the active request
-      if (abortControllerRef.current === currentAbortController) {
-        toast.error('Premium voice failed. Using standard speech fallback.');
-        fallbackToBrowserSpeech();
-      }
-    }
-  };
-
   const handleSwap = () => {
     setSourceLang(targetLang);
     setTargetLang(sourceLang);
@@ -469,7 +454,9 @@ const TranslatorCard = () => {
       return;
     }
 
-    console.log('[FRONTEND SUBMIT]', { q: sourceText, source: sourceLang, target: targetLang, tone, dialect });
+    if (import.meta.env.DEV) {
+      console.log('[FRONTEND SUBMIT]', { q: sourceText, source: sourceLang, target: targetLang, tone, dialect });
+    }
     setIsTranslating(true);
 
     try {
@@ -504,7 +491,7 @@ const TranslatorCard = () => {
 
       history.unshift(historyItem);
 
-      history = history.slice(0, 10);
+      history = history.slice(0, 25);
 
       localStorage.setItem(
         'translation_history',
@@ -725,26 +712,38 @@ const TranslatorCard = () => {
                         />
                       )}
                       <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        whileHover={isAudioSupported ? { scale: 1.05 } : {}}
+                        whileTap={isAudioSupported ? { scale: 0.95 } : {}}
+                        disabled={!isAudioSupported}
                         onClick={handleSpeak}
-                        className={`relative p-3 rounded-xl shadow-md transition-all border flex items-center justify-center ${speechState === 'playing' || speechState === 'generating'
-                          ? 'bg-blue-500 text-white border-blue-600 hover:bg-blue-600'
-                          : 'bg-white/80 dark:bg-zinc-800/80 text-slate-600 dark:text-slate-300 border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-zinc-700'
-                          }`}
+                        className={`relative p-3 rounded-xl shadow-md transition-all border flex items-center justify-center ${
+                          !isAudioSupported
+                            ? 'bg-slate-100 dark:bg-zinc-800/40 text-slate-400 dark:text-slate-600 border-slate-200/30 dark:border-white/5 cursor-not-allowed'
+                            : speechState === 'playing' || speechState === 'generating'
+                            ? 'bg-blue-500 text-white border-blue-600 hover:bg-blue-600'
+                            : 'bg-white/80 dark:bg-zinc-800/80 text-slate-600 dark:text-slate-300 border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-zinc-700'
+                        }`}
                         title={
-                          speechState === 'playing'
+                          !isAudioSupported
+                            ? isDialectAudioDisabled
+                              ? 'Audio playback is available only for standard languages.'
+                              : 'Audio unavailable on this device.'
+                            : speechState === 'playing'
                             ? 'Stop speaking'
                             : speechState === 'generating'
-                              ? 'Cancel audio generation'
-                              : 'Listen to translation'
+                            ? 'Cancel speech'
+                            : 'Speak translation'
                         }
                         aria-label={
-                          speechState === 'playing'
+                          !isAudioSupported
+                            ? isDialectAudioDisabled
+                              ? 'Audio playback is available only for standard languages.'
+                              : 'Audio unavailable on this device.'
+                            : speechState === 'playing'
                             ? 'Stop speaking'
                             : speechState === 'generating'
-                              ? 'Cancel audio generation'
-                              : 'Listen to translation'
+                            ? 'Cancel speech'
+                            : 'Speak translation'
                         }
                       >
                         {speechState === 'generating' ? (
@@ -766,22 +765,24 @@ const TranslatorCard = () => {
                           className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1.5 ml-1 shrink-0 select-none"
                         >
                           <Loader2 size={12} className="animate-spin" />
-                          Generating voice...
+                          Preparing speech...
                         </motion.span>
                       )}
                     </AnimatePresence>
 
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setPlaybackSpeed(prev => prev === 1 ? 0.75 : prev === 0.75 ? 0.5 : 1)}
-                      className="p-3 rounded-xl bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 shadow-md transition-all text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-white/10 flex items-center justify-center gap-1 font-medium text-xs"
-                      title={`Playback speed: ${playbackSpeed}x`}
-                      aria-label="Toggle playback speed"
-                    >
-                      <Gauge size={16} />
-                      <span className="w-6">{playbackSpeed}x</span>
-                    </motion.button>
+                    {isAudioSupported && (
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setPlaybackSpeed(prev => prev === 1 ? 0.75 : prev === 0.75 ? 0.5 : 1)}
+                        className="p-3 rounded-xl bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 shadow-md transition-all text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-white/10 flex items-center justify-center gap-1 font-medium text-xs"
+                        title={`Playback speed: ${playbackSpeed}x`}
+                        aria-label="Toggle playback speed"
+                      >
+                        <Gauge size={16} />
+                        <span className="w-6">{playbackSpeed}x</span>
+                      </motion.button>
+                    )}
                   </>
                 )}
               </div>

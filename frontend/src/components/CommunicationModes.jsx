@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Settings2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -84,16 +84,16 @@ const CommunicationModes = ({ tone, setTone, dialect, setDialect, speakerProfile
 
         {/* Speaker Profile Selector */}
         <div className="relative w-full sm:w-auto flex-1 max-w-[200px]">
-          <label htmlFor="speaker-select" className="sr-only">Speaker Voice</label>
+          <label htmlFor="speaker-select" className="sr-only">Voice Profile</label>
           <select
             id="speaker-select"
             value={speakerProfile}
             onChange={(e) => setSpeakerProfile(e.target.value)}
             className="w-full bg-white/60 dark:bg-black/40 backdrop-blur-md text-sm font-medium text-slate-700 dark:text-slate-200 outline-none cursor-pointer hover:bg-white/90 dark:hover:bg-white/10 p-2.5 rounded-lg transition-all shadow-sm border border-slate-200 dark:border-white/10 appearance-none focus:ring-2 focus:ring-emerald-500/50"
           >
-            <optgroup label="Speaker Voice">
-              <option value="Female" className="dark:bg-zinc-900">Voice: Female</option>
-              <option value="Male" className="dark:bg-zinc-900">Voice: Male</option>
+            <optgroup label="Voice Profile">
+              <option value="Female" className="dark:bg-zinc-900">Profile: Female</option>
+              <option value="Male" className="dark:bg-zinc-900">Profile: Male</option>
             </optgroup>
           </select>
           <motion.div layoutId="speaker-active" className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.8)]" />

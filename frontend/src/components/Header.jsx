@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Languages, Moon, Sun, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -29,7 +29,7 @@ const Header = ({ darkMode, toggleTheme }) => {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="hidden md:flex items-center gap-8"
         >
-          {['Features', 'History', 'API'].map((item, idx) => (
+          {['Features', 'History', 'API'].map((item) => (
             <a 
               key={item} 
               href={`#${item.toLowerCase()}`}

@@ -27,10 +27,11 @@ router.post('/', async (req, res) => {
 
     if (!isStandard) {
       const ai = new GoogleGenAI({ apiKey });
-      const { systemInstruction, userPrompt } = buildPrompt(q, source, target);
+      const { systemInstruction, userPrompt } = buildPrompt(q, source, target, tone, dialect);
 
-      // Stage 1: Base Translation
+      // Stage 1: Base Translation (Try Gemini)
       let baseText = null;
+      let geminiSuccess = false;
       try {
         const response1 = await ai.models.generateContent({
           model: 'gemini-2.5-flash',
@@ -41,45 +42,49 @@ router.post('/', async (req, res) => {
           }
         });
         baseText = response1.text ? String(response1.text).trim() : null;
-        console.log("[STEP 2] Base translation success");
-        console.log("baseText content:", baseText);
-        console.log("typeof baseText:", typeof baseText);
-      } catch (err) {
-        console.error("[TRANSLATION STAGE FAILED]", err.stack || err);
-        // Fallback to standard translation if Gemini completely fails
-        const fallbackResult = await translate(q, { from: source, to: target });
-        baseText = fallbackResult && fallbackResult.text ? String(fallbackResult.text).trim() : q;
-      }
-
-      if (!baseText) {
-        baseText = q; // Ultimate fallback
-      }
-
-      // Stage 2: Dialect Transformation
-      let transformedText = baseText;
-      try {
-        console.log("[STEP 3] Applying dialect");
-        const dialectResult = applyDialect(baseText, dialect);
-        if (dialectResult && typeof dialectResult === 'string') {
-          transformedText = String(dialectResult).trim();
-          console.log("[STEP 4] Dialect transform success");
-        } else {
-          console.log("[STEP 4] Dialect transform returned invalid output");
+        if (baseText) {
+          geminiSuccess = true;
+          console.log("[STEP 2] Base translation success (Gemini)");
+          console.log("baseText content:", baseText);
+          console.log("typeof baseText:", typeof baseText);
         }
-        console.log("transformedText content:", transformedText);
-        console.log("typeof transformedText:", typeof transformedText);
       } catch (err) {
-        console.error("[DIALECT STAGE FAILED]", err.stack || err);
-        transformedText = baseText; // Fallback to base text on failure
+        console.error("[TRANSLATION STAGE FAILED] Gemini failed, executing fallback:", err.stack || err);
       }
 
-      // Stage 3: Preparing Response
-      try {
-        console.log("[STEP 5] Preparing response");
-        finalOutput = transformedText;
-      } catch (err) {
-        console.error("[PREPARATION STAGE FAILED]", err.stack || err);
+      if (geminiSuccess) {
+        // Path A: Gemini Success Path (bypasses dialect post-processing completely)
         finalOutput = baseText;
+        console.log("[STEP 3] Bypassing dialectTransformer for Gemini success path");
+      } else {
+        // Path B: Gemini Failure Path (executes standard translation and applies dialectTransformer)
+        try {
+          const fallbackResult = await translate(q, { from: source, to: target });
+          baseText = fallbackResult && fallbackResult.text ? String(fallbackResult.text).trim() : q;
+          console.log("[STEP 3] Fallback translation success");
+        } catch (err) {
+          console.error("[FALLBACK TRANSLATION FAILED]", err.stack || err);
+          baseText = q; // Ultimate fallback
+        }
+
+        let transformedText = baseText;
+        try {
+          console.log("[STEP 4] Applying dialect to fallback translation");
+          const dialectResult = applyDialect(baseText, dialect);
+          if (dialectResult && typeof dialectResult === 'string') {
+            transformedText = String(dialectResult).trim();
+            console.log("[STEP 5] Dialect transform success");
+          } else {
+            console.log("[STEP 5] Dialect transform returned invalid output");
+          }
+          console.log("transformedText content:", transformedText);
+          console.log("typeof transformedText:", typeof transformedText);
+        } catch (err) {
+          console.error("[DIALECT STAGE FAILED]", err.stack || err);
+          transformedText = baseText; // Fallback to base text on failure
+        }
+
+        finalOutput = transformedText;
       }
 
     } else {

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Globe, MessageSquare, Mail, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 

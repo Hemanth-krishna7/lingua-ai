@@ -7,7 +7,6 @@ const express = require('express');
 const cors = require('cors');
 
 const translationRouter = require('./src/routes/translationRouter');
-const ttsRouter = require('./src/routes/ttsRouter');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -23,7 +22,6 @@ app.get('/', (req, res) => {
 
 // Mount Routes
 app.use('/api/translate', translationRouter);
-app.use('/api/tts', ttsRouter);
 
 // Empty to remove old /api/translate route
 

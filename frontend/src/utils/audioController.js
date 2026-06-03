@@ -23,7 +23,9 @@ export class AudioController {
         this.audio.pause();
       })
       .catch((err) => {
-        console.log('[AUDIO UNLOCK] Autoplay restriction unlock attempted:', err.message);
+        if (import.meta.env.DEV) {
+          console.log('[AUDIO UNLOCK] Autoplay restriction unlock attempted:', err.message);
+        }
       });
   }
 
@@ -42,18 +44,22 @@ export class AudioController {
     this.audio.src = blobUrl;
 
     this.audio.onplay = () => {
-      console.log('[AUDIO PLAY]');
+      if (import.meta.env.DEV) {
+        console.log('[AUDIO PLAY]');
+      }
       if (onStart) onStart();
     };
 
     this.audio.onended = () => {
-      console.log('[AUDIO STOP]');
+      if (import.meta.env.DEV) {
+        console.log('[AUDIO STOP]');
+      }
       this.cleanupBlobOnly();
       if (onEnd) onEnd();
     };
 
     this.audio.onerror = (e) => {
-      console.log('[AUDIO STOP] Audio element error occurred');
+      console.error('[AUDIO STOP] Audio element error occurred');
       this.cleanupBlobOnly();
       if (onError) onError(e);
     };
@@ -71,7 +77,9 @@ export class AudioController {
   pause() {
     if (this.audio && !this.audio.paused) {
       this.audio.pause();
-      console.log('[AUDIO STOP]');
+      if (import.meta.env.DEV) {
+        console.log('[AUDIO STOP]');
+      }
       return true;
     }
     return false;
@@ -82,7 +90,9 @@ export class AudioController {
    */
   resume() {
     if (this.audio && this.audio.paused && this.audio.src) {
-      console.log('[AUDIO PLAY]');
+      if (import.meta.env.DEV) {
+        console.log('[AUDIO PLAY]');
+      }
       this.audio.play().catch((err) => {
         console.error('[AUDIO RESUME FAILED] Playback failed:', err.message);
       });
@@ -100,7 +110,7 @@ export class AudioController {
       this.audio.removeAttribute('src');
       try {
         this.audio.load(); // Flush audio buffer
-      } catch (e) {
+      } catch {
         // Safely catch any DOM Load interruptions
       }
     }
