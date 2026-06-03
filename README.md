@@ -76,11 +76,11 @@ LinguaAI
 
 ### Main Interface
 
-<img width="900" height="1326" alt="Screenshot 2026-06-03 220820" src="https://github.com/user-attachments/assets/21dbdaf4-f591-4259-8557-1d9b99e0dbef" />
+<img width="2559" height="1326" alt="Screenshot 2026-06-03 220820" src="https://github.com/user-attachments/assets/21dbdaf4-f591-4259-8557-1d9b99e0dbef" />
 
 ### Standard Translation
 
-<img width="900" height="1313" alt="Screenshot 2026-06-03 221240" src="https://github.com/user-attachments/assets/aa914233-8ee5-4758-bbd6-cb0b86ee4e6a" />
+<img width="2559" height="1313" alt="Screenshot 2026-06-03 221240" src="https://github.com/user-attachments/assets/aa914233-8ee5-4758-bbd6-cb0b86ee4e6a" />
 
 
 ### Hinglish Translation
