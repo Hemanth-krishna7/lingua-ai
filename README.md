@@ -1,6 +1,6 @@
 # LinguaAI
 
-LinguaAI is a multilingual translation web application developed as part of my internship project. The goal of this project was to make translations sound more natural and conversational instead of producing only formal textbook-style outputs.
+LinguaAI is a multilingual translation web application. The goal of this project was to make translations sound more natural and conversational instead of producing only formal textbook-style outputs.
 
 Apart from standard translations, the application also supports conversational dialect modes such as Hinglish and Hyderabadi Hindi. These modes help demonstrate how the same sentence may be spoken in different real-world communication styles.
 
