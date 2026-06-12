@@ -8,7 +8,7 @@ The project also includes speech playback, translation history, voice profile se
 
 ---
 
-## Live Demo
+## Live Demo:-
 
 **Website:**
 https://lingua-ai-seven-drab.vercel.app/
